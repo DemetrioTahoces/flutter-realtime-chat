@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 //import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:realtime_chat/models/usuario.dart';
+import 'package:realtime_chat/pages/login_page.dart';
+import 'package:realtime_chat/services/auth_service.dart';
 import 'package:realtime_chat/widgets/usuario_list_tile.dart';
 
 class UsuariosPage extends StatefulWidget {
@@ -13,18 +16,20 @@ class _UsuariosPageState extends State<UsuariosPage> {
   // RefreshController(initialRefresh: false);
 
   final usuarios = [
-    Usuario(uuid: '1', nombre: 'María', email: 'test1@test.com', online: true),
-    Usuario(
-        uuid: '2', nombre: 'Demetrio', email: 'test2@test.com', online: true),
-    Usuario(uuid: '3', nombre: 'Sara', email: 'test3@test.com', online: false),
+    Usuario(uuid: '1', name: 'María', email: 'test1@test.com', online: true),
+    Usuario(uuid: '2', name: 'Demetrio', email: 'test2@test.com', online: true),
+    Usuario(uuid: '3', name: 'Sara', email: 'test3@test.com', online: false),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+    final usuario = authService.usuario;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Mi Nombre',
+          usuario.name,
           style: TextStyle(color: Colors.black54),
         ),
         elevation: 1,
@@ -34,7 +39,16 @@ class _UsuariosPageState extends State<UsuariosPage> {
             Icons.exit_to_app,
             color: Colors.black54,
           ),
-          onPressed: () {},
+          onPressed: () {
+            AuthService.deleteToken();
+            Navigator.pushReplacement(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (_, __, ___) => LoginPage(),
+                transitionDuration: Duration(milliseconds: 500),
+              ),
+            );
+          },
         ),
         actions: [
           Container(

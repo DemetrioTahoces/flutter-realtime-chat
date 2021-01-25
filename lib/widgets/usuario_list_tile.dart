@@ -11,9 +11,9 @@ class UsuarioListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(usuario.nombre),
+      title: Text(usuario.name),
       leading: CircleAvatar(
-        child: Text(usuario.nombre.substring(0, 2)),
+        child: Text(usuario.name.substring(0, 2)),
       ),
       trailing: Container(
         width: 10,

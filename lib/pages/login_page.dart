@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:realtime_chat/helpers/mostrar_alerta.dart';
 import 'package:realtime_chat/pages/usuarios_page.dart';
 import 'package:realtime_chat/services/auth_service.dart';
+import 'package:realtime_chat/services/socket_service.dart';
 import 'package:realtime_chat/widgets/boton_azul.dart';
 import 'package:realtime_chat/widgets/custom_input.dart';
 import 'package:realtime_chat/widgets/labels.dart';
@@ -83,6 +84,9 @@ class __FormState extends State<_Form> {
                     );
 
                     if (ok) {
+                      await Provider.of<SocketService>(context, listen: false)
+                          .connect();
+
                       Navigator.pushReplacement(
                         context,
                         PageRouteBuilder(

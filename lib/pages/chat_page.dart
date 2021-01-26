@@ -2,6 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:realtime_chat/models/messages_response.dart';
+import 'package:realtime_chat/services/auth_service.dart';
+import 'package:realtime_chat/services/chat_service.dart';
+import 'package:realtime_chat/services/socket_service.dart';
 import 'package:realtime_chat/widgets/chat_message.dart';
 
 class ChatPage extends StatefulWidget {
@@ -12,6 +17,10 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   final _textController = TextEditingController();
   final _focusNode = FocusNode();
+
+  ChatService chatService;
+  SocketService socketService;
+  AuthService authService;
 
   List<ChatMessage> _messages = [
     // ChatMessage(texto: 'Hola Mundo', uid: '123'),
@@ -28,19 +37,56 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   bool _estaEscribiendo = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    chatService = Provider.of<ChatService>(context, listen: false);
+    socketService = Provider.of<SocketService>(context, listen: false);
+    authService = Provider.of<AuthService>(context, listen: false);
+
+    this.socketService.socket.on('personal-message', _escucharMensaje);
+
+    _cargarHistorial(this.chatService.usuarioPara.uuid);
+  }
+
+  void _escucharMensaje(dynamic data) {
+    String from = data['from'];
+
+    if (from == chatService.usuarioPara.uuid) {
+      ChatMessage message = ChatMessage(
+        texto: data['message'],
+        uuid: from,
+        animationController: AnimationController(
+          vsync: this,
+          duration: Duration(milliseconds: 400),
+        ),
+      );
+
+      setState(() {
+        _messages.insert(0, message);
+      });
+
+      message.animationController.forward();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final usuarioPara = chatService.usuarioPara;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         title: Column(
           children: [
             CircleAvatar(
-              child: Text('MF', style: TextStyle(fontSize: 12)),
+              child: Text(usuarioPara.name.substring(0, 2),
+                  style: TextStyle(fontSize: 12)),
               backgroundColor: Colors.blue[100],
             ),
             SizedBox(height: 3),
             Text(
-              'Melisa Flores',
+              usuarioPara.name,
               style: TextStyle(color: Colors.black54, fontSize: 12),
             ),
           ],
@@ -127,7 +173,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
 
     setState(() {
       final newMessage = ChatMessage(
-        uid: '123',
+        uuid: this.authService.usuario.uuid,
         texto: texto,
         animationController: AnimationController(
           vsync: this,
@@ -139,15 +185,41 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
       _estaEscribiendo = false;
     });
 
+    this.socketService.emit('personal-message', {
+      'from': this.authService.usuario.uuid,
+      'to': this.chatService.usuarioPara.uuid,
+      'message': texto,
+    });
+
     _textController.clear();
     _focusNode.requestFocus();
   }
 
   @override
   void dispose() {
-    super.dispose();
     for (ChatMessage message in _messages) {
       message.animationController.dispose();
     }
+
+    this.socketService.socket.off('personal-message');
+
+    super.dispose();
+  }
+
+  void _cargarHistorial(String uuid) async {
+    List<Message> chat = await this.chatService.getChat(uuid);
+
+    final history = chat.map((message) => ChatMessage(
+          texto: message.message,
+          uuid: message.from,
+          animationController: AnimationController(
+            vsync: this,
+            duration: Duration(milliseconds: 0),
+          )..forward(),
+        ));
+
+    setState(() {
+      this._messages.insertAll(0, history);
+    });
   }
 }
